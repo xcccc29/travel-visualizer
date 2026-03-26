@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Austria &amp; Germany — May 2026</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0ece6; color: #2c3e50; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+header { background: #1a2744; color: white; padding: 11px 20px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+header h1 { font-size: 1rem; font-weight: 700; letter-spacing: 0.3px; }
+header p { font-size: 0.72rem; opacity: 0.6; margin-top: 2px; }
+.header-right { text-align: right; font-size: 0.72rem; opacity: 0.6; }
+
+.tabs-row { background: #243156; display: flex; overflow-x: auto; padding: 0 6px; flex-shrink: 0; scrollbar-width: none; }
+.tabs-row::-webkit-scrollbar { display: none; }
+.tab-btn { background: none; border: none; color: rgba(255,255,255,0.55); padding: 8px 13px; cursor: pointer; font-size: 0.72rem; white-space: nowrap; border-bottom: 3px solid transparent; transition: all 0.18s; font-family: inherit; line-height: 1.4; }
+.tab-btn:hover { color: white; background: rgba(255,255,255,0.07); }
+.tab-btn.active { color: white; border-bottom-color: #e8a030; background: rgba(255,255,255,0.1); }
+.tab-day { display: block; font-size: 0.62rem; opacity: 0.6; }
+
+.main { display: flex; flex: 1; overflow: hidden; }
+
+.left-panel { width: 43%; overflow-y: auto; background: white; border-right: 1px solid #ddd; }
+
+.day-header { background: #1a2744; color: white; padding: 14px 18px; position: sticky; top: 0; z-index: 10; }
+.day-num-label { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 1.5px; opacity: 0.6; margin-bottom: 2px; }
+.day-header h2 { font-size: 1rem; font-weight: 700; }
+.region-tag { display: inline-block; background: rgba(232,160,48,0.25); color: #e8a030; font-size: 0.65rem; padding: 2px 8px; border-radius: 12px; margin-top: 5px; }
+
+.day-content { padding: 14px 18px; }
+.section { margin-bottom: 16px; }
+.section-label { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 1.5px; color: #aaa; margin-bottom: 7px; font-weight: 600; }
+.time-badge { display: inline-block; background: #eef6ee; color: #27ae60; font-size: 0.62rem; padding: 2px 8px; border-radius: 10px; font-weight: 700; margin-bottom: 7px; letter-spacing: 0.3px; }
+
+.transport-item { display: flex; align-items: flex-start; gap: 9px; background: #f0f5ff; border-left: 3px solid #3498db; padding: 8px 11px; border-radius: 0 5px 5px 0; margin-bottom: 5px; font-size: 0.79rem; line-height: 1.5; }
+.t-icon { color: #3498db; font-size: 0.9rem; margin-top: 1px; flex-shrink: 0; }
+
+.activity-item { display: flex; gap: 9px; padding: 7px 0; border-bottom: 1px solid #f2f2f2; font-size: 0.79rem; line-height: 1.5; }
+.activity-item:last-child { border-bottom: none; }
+.dot { width: 7px; height: 7px; border-radius: 50%; margin-top: 5px; flex-shrink: 0; }
+.dg { background: #27ae60; } .dp { background: #8e44ad; } .dt { background: #16a085; } .db { background: #3498db; }
+.activity-item strong { display: block; font-weight: 600; color: #1a2744; font-size: 0.8rem; }
+.activity-item span { color: #666; }
+
+.rest-card { background: #fff8f0; border-left: 3px solid #e67e22; border-radius: 0 5px 5px 0; padding: 9px 12px; margin-bottom: 7px; font-size: 0.79rem; }
+.rest-name { font-weight: 700; color: #c0392b; margin-bottom: 1px; font-size: 0.82rem; }
+.rest-addr { font-size: 0.68rem; color: #aaa; margin-bottom: 4px; }
+.rest-desc { color: #555; line-height: 1.5; }
+
+.note-box { background: #f9f3ff; border-left: 3px solid #8e44ad; border-radius: 0 5px 5px 0; padding: 9px 12px; font-size: 0.78rem; color: #555; line-height: 1.5; margin-bottom: 12px; }
+.note-box strong { color: #8e44ad; }
+.warn-box { background: #fff8e6; border-left: 3px solid #e8a030; border-radius: 0 5px 5px 0; padding: 9px 12px; font-size: 0.78rem; color: #555; line-height: 1.5; margin-bottom: 12px; }
+.warn-box strong { color: #c87f00; }
+
+.right-panel { flex: 1; position: relative; }
+#map { width: 100%; height: 100%; }
+
+.legend { position: absolute; bottom: 28px; right: 10px; background: white; border-radius: 7px; padding: 9px 13px; box-shadow: 0 2px 10px rgba(0,0,0,0.14); z-index: 1000; font-size: 0.7rem; }
+.legend-title { font-weight: 700; font-size: 0.62rem; text-transform: uppercase; letter-spacing: 1px; color: #aaa; margin-bottom: 7px; }
+.legend-item { display: flex; align-items: center; gap: 7px; margin-bottom: 5px; color: #444; }
+.legend-item:last-child { margin-bottom: 0; }
+.ldot { width: 10px; height: 10px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 0 1.5px rgba(0,0,0,0.18); flex-shrink: 0; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Austria &amp; Germany — May 2026</h1>
+    <p>Munich &nbsp;·&nbsp; Salzburg &nbsp;·&nbsp; Vienna &nbsp;·&nbsp; Nördlingen</p>
+  </div>
+  <div class="header-right">10 Days &nbsp;|&nbsp; 2 Travelers<br>May 21 – 30</div>
+</header>
+
+<div class="tabs-row" id="tabsRow"></div>
+
+<div class="main">
+  <div class="left-panel" id="leftPanel"></div>
+  <div class="right-panel">
+    <div id="map"></div>
+    <div class="legend">
+      <div class="legend-title">Legend</div>
+      <div class="legend-item"><div class="ldot" style="background:#3498db"></div>Transport</div>
+      <div class="legend-item"><div class="ldot" style="background:#27ae60"></div>Sightseeing</div>
+      <div class="legend-item"><div class="ldot" style="background:#e67e22"></div>Dining</div>
+      <div class="legend-item"><div class="ldot" style="background:#8e44ad"></div>Music / Culture</div>
+      <div class="legend-item"><div class="ldot" style="background:#16a085"></div>Nature</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const C = { transport:'#3498db', sightseeing:'#27ae60', food:'#e67e22', music:'#8e44ad', nature:'#16a085' };
+
+const days = [
+{
+  num:1, date:'May 21', title:'Arrival: Munich → Salzburg', region:'Munich & Salzburg',
+  locs:[
+    {n:'Munich Airport (MUC)', lat:48.3537, lng:11.7860, t:'transport', d:'Arrival. Take S-Bahn S8/S1 to Munich Hbf (~40 min, €13.60).'},
+    {n:'Munich Hauptbahnhof', lat:48.1402, lng:11.5600, t:'transport', d:'Board ÖBB/DB Railjet to Salzburg (~1h 30min, €20–40). Book at oebb.at or bahn.de.'},
+    {n:'Salzburg Hauptbahnhof', lat:47.8126, lng:13.0450, t:'transport', d:'Arrive Salzburg. Walk or taxi to hotel.'},
+    {n:'Salzach River & Staatsbrücke', lat:47.7996, lng:13.0433, t:'sightseeing', d:'Evening stroll along the river into Old Town — flat, good orientation walk.'},
+    {n:'Stiftskeller St. Peter', lat:47.7967, lng:13.0469, t:'food', d:'Dinner. Founded 803 AD inside a monastery courtyard — one of the oldest restaurants in Europe.'},
+  ],
+  html:`<div class="day-header"><div class="day-num-label">Day 1 · May 21</div><h2>Arrival: Munich → Salzburg</h2><span class="region-tag">Munich &amp; Salzburg</span></div>
+<div class="day-content">
+<div class="section"><div class="section-label">Transport</div>
+<div class="transport-item"><span class="t-icon">→</span><div><strong>Munich Airport → Munich Hbf</strong><br>S-Bahn S8 or S1 · ~40 min · €13.60 · Buy at machine</div></div>
+<div class="transport-item"><span class="t-icon">→</span><div><strong>Munich Hbf → Salzburg Hbf</strong><br>ÖBB/DB Railjet · ~1h 30min · €20–40 · Book at oebb.at or bahn.de</div></div>
+</div>
+<div class="section"><div class="time-badge">Evening</div>
+<div class="activity-item"><div class="dot dt"></div><div><strong>Salzach River Walk & Staatsbrücke</strong><span>Easy stroll along the river into Old Town. Good orientation walk, flat on the legs.</span></div></div>
+<div class="activity-item"><div class="dot dg"></div><div><strong>Race Packet Pickup</strong><span>If scheduled this evening, collect your bib and race kit.</span></div></div>
+</div>
+<div class="section"><div class="section-label">Dinner</div>
+<div class="rest-card"><div class="rest-name">Stiftskeller St. Peter</div><div class="rest-addr">St. Peter Bezirk 1/4, Salzburg</div><div class="rest-desc">Founded 803 AD inside a monastery courtyard — one of the oldest continuously operating restaurants in Europe. Austrian classics: Salzburger Nockerl, Tafelspitz.</div></div>
+</div></div>`
+},
+{
+  num:2, date:'May 22', title:'Salzburg — Pre-Race Day', region:'Salzburg',
+  locs:[
+    {n:"Mozart's Birthplace (Geburtshaus)", lat:47.8003, lng:13.0443, t:'music', d:"Getreidegasse 9 — the house where Mozart was born in 1756. Museum. ~1–1.5 hrs."},
+    {n:'Mirabell Palace & Gardens', lat:47.8054, lng:13.0433, t:'sightseeing', d:'Baroque formal gardens. Flat and easy on the legs before tomorrow\'s race.'},
+    {n:"Mozart's Residence (Mozartwohnhaus)", lat:47.8030, lng:13.0453, t:'music', d:"Makartplatz 8 — his later home. More personal artifacts and letters than the Birthplace."},
+    {n:'Salzburg Cathedral (Dom)', lat:47.7982, lng:13.0476, t:'music', d:"Baroque masterpiece. Mozart was baptized here and served as court organist."},
+    {n:'Café Tomaselli', lat:47.7993, lng:13.0453, t:'food', d:"Dinner. Salzburg's oldest coffee house, since 1705. Light fare, excellent cakes, Melange coffee."},
+  ],
+  html:`<div class="day-header"><div class="day-num-label">Day 2 · May 22</div><h2>Salzburg — Pre-Race Day</h2><span class="region-tag">Salzburg</span></div>
+<div class="day-content">
+<div class="warn-box"><strong>Easy day:</strong> Keep it light — save energy for tomorrow's race. All locations are flat or minimal walking.</div>
+<div class="section"><div class="time-badge">Morning</div>
+<div class="activity-item"><div class="dot dp"></div><div><strong>Mozart's Birthplace (Geburtshaus)</strong><span>Getreidegasse 9 — the house where Mozart was born in 1756. Excellent museum, allow 1–1.5 hrs. Walk the medieval Getreidegasse street afterwards.</span></div></div>
+</div>
+<div class="section"><div class="time-badge">Afternoon</div>
+<div class="activity-item"><div class="dot dg"></div><div><strong>Mirabell Palace & Gardens</strong><span>Baroque formal gardens — flat, beautiful, easy on the legs.</span></div></div>
+<div class="activity-item"><div class="dot dp"></div><div><strong>Mozart's Residence (Mozartwohnhaus)</strong><span>Makartplatz 8 — his later home, more personal artifacts and letters than the Birthplace.</span></div></div>
+<div class="activity-item"><div class="dot dp"></div><div><strong>Salzburg Cathedral (Dom)</strong><span>Mozart was baptized here and served as court organist. Baroque acoustic worth sitting in briefly.</span></div></div>
+</div>
+<div class="section"><div class="time-badge">Evening</div>
+<div class="activity-item"><div class="dot dp"></div><div><strong>Optional: Chamber Concert</strong><span>Concerts in Old Town churches are common in May. Check salzburg-concerts.at. Keep it short — early night for the race.</span></div></div>
+</div>
+<div class="section"><div class="section-label">Dinner</div>
+<div class="rest-card"><div class="rest-name">Café Tomaselli</div><div class="rest-addr">Alter Markt 9, Salzburg</div><div class="rest-desc">Salzburg's oldest coffee house, open since 1705. Light Austrian fare, excellent cakes, Melange coffee. Mozart's family frequented it.</div></div>
+</div></div>`
+},
+{
+  num:3, date:'May 23', title:'Race Day', region:'Salzburg',
+  locs:[
+    {n:'Trail Run Race (Salzburg)', lat:47.8150, lng:13.0900, t:'nature', d:'Race day — the main event!'},
+    {n:'Salzach Riverbank (Recovery)', lat:47.7996, lng:13.0450, t:'nature', d:'Post-race flat recovery walk along the river.'},
+    {n:'Augustinerbräu Mülln', lat:47.8044, lng:13.0365, t:'food', d:'Self-service monastery beer hall since 1621. Stone mug of Märzen + pretzels and cold cuts. Earned.'},
+    {n:'Bärenwirt', lat:47.8051, lng:13.0369, t:'food', d:'Dinner. Unpretentious Salzburg tavern. Käsespätzle, Tafelspitz, local Stiegl beer.'},
+  ],
+  html:`<div class="day-header"><div class="day-num-label">Day 3 · May 23</div><h2>Race Day</h2><span class="region-tag">Salzburg</span></div>
+<div class="day-content">
+<div class="warn-box"><strong>Race morning:</strong> Eat a familiar, tested breakfast. Don't experiment with new foods today.</div>
+<div class="section"><div class="time-badge">Morning</div>
+<div class="activity-item"><div class="dot dt"></div><div><strong>Trail Run Race</strong><span>Your main event. Good luck!</span></div></div>
+</div>
+<div class="section"><div class="time-badge">Post-Race</div>
+<div class="activity-item"><div class="dot dt"></div><div><strong>Salzach Riverbank Recovery Walk</strong><span>Flat riverside path — easy on post-race legs.</span></div></div>
+<div class="activity-item"><div class="dot dt"></div><div><strong>Augustinerbräu Mülln</strong><span>Augustinergasse 4 — self-service monastery brewery since 1621. Bring your stone mug to the tap, grab pretzels and cold cuts from the market stalls inside. Thoroughly earned.</span></div></div>
+</div>
+<div class="section"><div class="section-label">Dinner</div>
+<div class="rest-card"><div class="rest-name">Bärenwirt</div><div class="rest-addr">Müllner Hauptstraße 8, Salzburg</div><div class="rest-desc">Unpretentious Salzburg tavern, no tourist markup. Käsespätzle (cheese noodles), Tafelspitz, local Stiegl beer on tap.</div></div>
+</div></div>`
+},
+{
+  num:4, date:'May 24', title:'Salzburg — Fortress & Alps', region:'Salzburg & Untersberg',
+  locs:[
+    {n:'Hohensalzburg Fortress', lat:47.7952, lng:13.0472, t:'sightseeing', d:'Take the funicular up. One of the best-preserved medieval fortresses in Central Europe. Panoramic Alpine views.'},
+    {n:'Untersberg Cable Car (Base)', lat:47.7252, lng:13.0116, t:'nature', d:'Bus 25 from Salzburg Hbf (~30 min). Cable car to 1,776m (~€28 return). Ridgeline straddles Austria/Germany border.'},
+    {n:'Kapuzinerberg Walk', lat:47.8018, lng:13.0520, t:'sightseeing', d:'Forested hill across the river. Stefan Zweig (The World of Yesterday) lived here 1919–1934. Great views over Old Town.'},
+    {n:'Zum Wohl', lat:47.7988, lng:13.0436, t:'food', d:'Dinner. Excellent Austrian wine bar with seasonal small plates.'},
+  ],
+  html:`<div class="day-header"><div class="day-num-label">Day 4 · May 24</div><h2>Salzburg — Fortress & Alps</h2><span class="region-tag">Salzburg & Untersberg</span></div>
+<div class="day-content">
+<div class="section"><div class="time-badge">Morning</div>
+<div class="activity-item"><div class="dot dg"></div><div><strong>Hohensalzburg Fortress</strong><span>Take the funicular up (or hike if legs allow). One of the best-preserved medieval fortresses in Central Europe. Panoramic Alpine views over the city. Walk down through the gardens.</span></div></div>
+</div>
+<div class="section"><div class="time-badge">Afternoon</div>
+<div class="activity-item"><div class="dot dt"></div><div><strong>Untersberg Mountain</strong><span>Bus 25 from Salzburg Hbf (~30 min) to Untersberg Seilbahn. Cable car to 1,776m (~€28 return). Ridgeline straddles Austria and Germany. Easy ridge walks, dramatic Alpine views.</span></div></div>
+<div class="activity-item"><div class="dot dg"></div><div><strong>Kapuzinerberg Walk</strong><span>Quiet forested hill across the river. Stefan Zweig (<em>The World of Yesterday</em>) lived here 1919–1934 before fleeing the Nazis. Great views back over the city.</span></div></div>
+</div>
+<div class="section"><div class="section-label">Dinner</div>
+<div class="rest-card"><div class="rest-name">Zum Wohl</div><div class="rest-addr">Gstättengasse 3, Salzburg</div><div class="rest-desc">Excellent Austrian wine bar with thoughtful seasonal small plates. Good spot to sit long and talk.</div></div>
+</div></div>`
+},
+{
+  num:5, date:'May 25', title:'Salzburg → Vienna', region:'Salzburg & Vienna',
+  locs:[
+    {n:'Salzburg Hauptbahnhof', lat:47.8126, lng:13.0450, t:'transport', d:'Depart on ÖBB Railjet to Vienna (~2h 30min, €30–60). Book at oebb.at.'},
+    {n:'Wien Hauptbahnhof', lat:48.1847, lng:16.3760, t:'transport', d:'Arrive Vienna. Take U1 U-Bahn into city center.'},
+    {n:'Ringstraße / Opera', lat:48.2030, lng:16.3694, t:'sightseeing', d:"19th-century imperial boulevard: Opera House, Parliament, KHM, Burgtheater, Rathaus. Walk it to grasp the Habsburg scale."},
+    {n:'Naschmarkt', lat:48.1993, lng:16.3634, t:'sightseeing', d:"Vienna's famous open-air market (closes ~6pm). Cheeses, cured meats, produce, spices."},
+    {n:'Vienna State Opera', lat:48.2031, lng:16.3695, t:'music', d:'Standing tickets (Stehplatz) €4–13 — on sale 80 min before curtain. Check wiener-staatsoper.at.'},
+    {n:'Figlmüller Bäckerstraße', lat:48.2083, lng:16.3762, t:'food', d:"Dinner. Vienna's most iconic Wiener Schnitzel — enormous, paper-thin. Reservation recommended."},
+  ],
+  html:`<div class="day-header"><div class="day-num-label">Day 5 · May 25</div><h2>Salzburg → Vienna</h2><span class="region-tag">Salzburg & Vienna</span></div>
+<div class="day-content">
+<div class="section"><div class="section-label">Transport</div>
+<div class="transport-item"><span class="t-icon">→</span><div><strong>Salzburg Hbf → Wien Hauptbahnhof</strong><br>ÖBB Railjet · ~2h 30min · €30–60 · Book at oebb.at<br>Wien Hbf → city: U1 U-Bahn</div></div>
+</div>
+<div class="section"><div class="time-badge">Afternoon</div>
+<div class="activity-item"><div class="dot dg"></div><div><strong>Ringstraße Walk</strong><span>The grand 19th-century imperial boulevard — Opera House, Parliament, Kunsthistorisches Museum, Burgtheater, Rathaus in one sweep. Understanding the Habsburg scale.</span></div></div>
+<div class="activity-item"><div class="dot dg"></div><div><strong>Naschmarkt</strong><span>Vienna's famous open-air market (closes ~6pm). Cheeses, cured meats, fresh produce, spices.</span></div></div>
+</div>
+<div class="section"><div class="time-badge">Evening</div>
+<div class="activity-item"><div class="dot dp"></div><div><strong>Vienna State Opera (Wiener Staatsoper)</strong><span>Standing tickets (Stehplatz) €4–13 — on sale 80 min before curtain at Abendkasse. Check wiener-staatsoper.at. One of the world's great opera houses.</span></div></div>
+</div>
+<div class="section"><div class="section-label">Dinner</div>
+<div class="rest-card"><div class="rest-name">Figlmüller Bäckerstraße</div><div class="rest-addr">Bäckerstraße 6, Vienna</div><div class="rest-desc">Vienna's most iconic Wiener Schnitzel — enormous, paper-thin, perfectly fried. Classic old-Vienna institution. Reservation recommended.</div></div>
+</div></div>`
+},
+{
+  num:6, date:'May 26', title:'Vienna — Imperial Collections', region:'Vienna',
+  locs:[
+    {n:'Kunsthistorisches Museum (KHM)', lat:48.2036, lng:16.3614, t:'sightseeing', d:"World-class art museum: the largest Bruegel collection anywhere, Vermeer, Raphael, Caravaggio, Egyptian antiquities. Allow 3+ hours."},
+    {n:'Belvedere Palace & Gardens', lat:48.1913, lng:16.3808, t:'sightseeing', d:"Baroque palace. Upper Belvedere houses Klimt's The Kiss and Schiele. Formal gardens between the two palaces."},
+    {n:'Musikverein', lat:48.2005, lng:16.3724, t:'music', d:"The Golden Hall — where the New Year's Concert is held. Check musikverein.at for afternoon concerts."},
+    {n:'Café Central', lat:48.2094, lng:16.3672, t:'food', d:'Grand vaulted coffeehouse. Freud, Trotsky, Schnitzler were regulars. Order Melange and Apfelstrudel.'},
+    {n:"Meixner's Gastwirtschaft", lat:48.2151, lng:16.3541, t:'food', d:'Dinner. Genuine Viennese Beisl — no tourist pricing. Gulasch, liver, Tafelspitz.'},
+  ],
+  html:`<div class="day-header"><div class="day-num-label">Day 6 · May 26</div><h2>Vienna — Imperial Collections</h2><span class="region-tag">Vienna</span></div>
+<div class="day-content">
+<div class="section"><div class="time-badge">Morning</div>
+<div class="activity-item"><div class="dot dg"></div><div><strong>Kunsthistorisches Museum (KHM)</strong><span>Maria-Theresien-Platz. One of the world's great art museums: the largest Bruegel collection anywhere, Vermeer, Raphael, Caravaggio, Egyptian antiquities. The building itself is Habsburg imperial architecture at its peak. Allow 3+ hours.</span></div></div>
+</div>
+<div class="section"><div class="time-badge">Afternoon</div>
+<div class="activity-item"><div class="dot dg"></div><div><strong>Belvedere Palace & Gardens</strong><span>Upper Belvedere houses Klimt's <em>The Kiss</em> and Schiele. Formal gardens between the two palaces are a slow, pleasant walk.</span></div></div>
+<div class="activity-item"><div class="dot dp"></div><div><strong>Musikverein</strong><span>The Golden Hall — where the New Year's Concert is held. Check musikverein.at for afternoon concerts.</span></div></div>
+</div>
+<div class="section"><div class="time-badge">Evening</div>
+<div class="activity-item"><div class="dot dt"></div><div><strong>Café Central</strong><span>Herrengasse 14 — grand vaulted coffeehouse. Freud, Trotsky, Schnitzler were regulars. Melange and Apfelstrudel.</span></div></div>
+</div>
+<div class="section"><div class="section-label">Dinner</div>
+<div class="rest-card"><div class="rest-name">Meixner's Gastwirtschaft</div><div class="rest-addr">Buchfeldgasse 6, Vienna</div><div class="rest-desc">A genuine Viennese Beisl (neighborhood pub), no tourist pricing. Gulasch, liver with apples and onions, Tafelspitz.</div></div>
+</div></div>`
+},
+{
+  num:7, date:'May 27', title:'Vienna — Philosophy & Literature', region:'Vienna',
+  locs:[
+    {n:'Freud Museum', lat:48.2197, lng:16.3601, t:'sightseeing', d:"Berggasse 19 — Freud's apartment and consulting rooms, preserved as of 1938. Philosophy of mind, psychoanalysis. Allow 1.5 hrs."},
+    {n:'Votivkirche', lat:48.2166, lng:16.3608, t:'sightseeing', d:'Neo-Gothic church on the Ringstraße, 10-min walk from Freud Museum.'},
+    {n:'Hütteldorf (Wienerwald Trailhead)', lat:48.1988, lng:16.2567, t:'nature', d:'U4 to Hütteldorf — forest trails start immediately. Beethoven walked these woods while composing.'},
+    {n:'Zentralfriedhof (Central Cemetery)', lat:48.1437, lng:16.4375, t:'sightseeing', d:'Tram 71. Beethoven, Schubert, Brahms, Strauss father & son buried here. A musical pilgrimage.'},
+    {n:'Café Hawelka', lat:48.2082, lng:16.3706, t:'food', d:"Vienna's beloved literary café, opened 1939. Order Buchteln (warm sweet rolls with jam) in the evening."},
+    {n:'Zum Wohl Vienna', lat:48.2094, lng:16.3740, t:'food', d:'Dinner. Natural wine bar, seasonal Austrian small plates for sharing.'},
+  ],
+  html:`<div class="day-header"><div class="day-num-label">Day 7 · May 27</div><h2>Vienna — Philosophy & Literature</h2><span class="region-tag">Vienna</span></div>
+<div class="day-content">
+<div class="section"><div class="time-badge">Morning</div>
+<div class="activity-item"><div class="dot dg"></div><div><strong>Freud Museum</strong><span>Berggasse 19 — Freud's apartment and consulting rooms, preserved as they were when he fled to London in 1938. Essential for anyone interested in the philosophy of mind and fin-de-siècle Viennese intellectual culture. Allow 1.5 hours.</span></div></div>
+<div class="activity-item"><div class="dot dg"></div><div><strong>Votivkirche</strong><span>Neo-Gothic church on the Ringstraße, 10-minute walk from the Freud Museum. Worth a look inside.</span></div></div>
+</div>
+<div class="section"><div class="time-badge">Afternoon — Choose One</div>
+<div class="activity-item"><div class="dot dt"></div><div><strong>Option A: Wienerwald (Vienna Woods)</strong><span>U4 to Hütteldorf — trails into the forested hills start immediately. 30 min from city center to proper forest. Beethoven walked here while composing and cited the woods as essential to his creative process.</span></div></div>
+<div class="activity-item"><div class="dot dg"></div><div><strong>Option B: Zentralfriedhof (Central Cemetery)</strong><span>Tram 71 from Schwarzenbergplatz. Beethoven, Schubert, Brahms, Johann Strauss father and son, and Gluck are buried here. A quiet musical pilgrimage. Robert Musil (<em>The Man Without Qualities</em>) is also buried here.</span></div></div>
+</div>
+<div class="section"><div class="time-badge">Evening</div>
+<div class="activity-item"><div class="dot dt"></div><div><strong>Café Hawelka</strong><span>Dorotheergasse 6 — Vienna's beloved literary café, opened 1939. More intimate than Café Central. Order the Buchteln (warm sweet rolls with jam, an evening specialty).</span></div></div>
+</div>
+<div class="section"><div class="section-label">Dinner</div>
+<div class="rest-card"><div class="rest-name">Zum Wohl Vienna</div><div class="rest-addr">Bauernmarkt 13, Vienna</div><div class="rest-desc">Natural wine bar with seasonal Austrian small plates — good for a longer, relaxed shared dinner.</div></div>
+</div></div>`
+},
+{
+  num:8, date:'May 28', title:'Vienna → Munich', region:'Vienna & Munich',
+  locs:[
+    {n:'Schönbrunn Palace & Gardens', lat:48.1849, lng:16.3122, t:'sightseeing', d:'Habsburg summer palace. Gardens free to walk. Climb to the Gloriette hilltop for the best view over palace and city.'},
+    {n:'Wien Hauptbahnhof', lat:48.1847, lng:16.3760, t:'transport', d:'ÖBB/DB Railjet to Munich (~4 hours, €40–80). Book in advance.'},
+    {n:'Munich Hauptbahnhof', lat:48.1402, lng:11.5600, t:'transport', d:'Arrive Munich afternoon.'},
+    {n:'Englischer Garten (Eisbach)', lat:48.1645, lng:11.5886, t:'nature', d:"One of the world's largest urban parks. River surfers on the Eisbach wave year-round — a strange, wonderful Munich detail."},
+    {n:'Augustiner Keller', lat:48.1418, lng:11.5521, t:'food', d:"Dinner. Munich's oldest beer cellar (1328). Massive outdoor garden. Schweinsbraten or Obatzda with pretzels."},
+  ],
+  html:`<div class="day-header"><div class="day-num-label">Day 8 · May 28</div><h2>Vienna → Munich</h2><span class="region-tag">Vienna & Munich</span></div>
+<div class="day-content">
+<div class="section"><div class="time-badge">Morning</div>
+<div class="activity-item"><div class="dot dg"></div><div><strong>Schönbrunn Palace & Gardens</strong><span>U4 to Schönbrunn. The formal gardens are free to walk. Climb to the Gloriette hilltop for the best panoramic view over the palace and city. Allow 1.5–2 hours.</span></div></div>
+</div>
+<div class="section"><div class="section-label">Transport</div>
+<div class="transport-item"><span class="t-icon">→</span><div><strong>Wien Hauptbahnhof → Munich Hauptbahnhof</strong><br>ÖBB/DB Railjet · ~4 hours · €40–80<br>Scenic route through Upper Austria and the pre-Alpine foothills. Book in advance at oebb.at or bahn.de.</div></div>
+</div>
+<div class="section"><div class="time-badge">Afternoon</div>
+<div class="activity-item"><div class="dot dt"></div><div><strong>Englischer Garten</strong><span>One of the world's largest urban parks. The Eisbach river has a standing wave where surfers ride year-round near Prinzregentenstraße — a strange, wonderful Munich detail. Good for a jog or walk after the train.</span></div></div>
+</div>
+<div class="section"><div class="section-label">Dinner</div>
+<div class="rest-card"><div class="rest-name">Augustiner Keller</div><div class="rest-addr">Arnulfstraße 52, Munich</div><div class="rest-desc">Munich's oldest beer cellar, established 1328. Massive outdoor garden under chestnut trees. Schweinsbraten (slow-roasted pork) or Obatzda (spiced cheese spread) with pretzels.</div></div>
+</div></div>`
+},
+{
+  num:9, date:'May 29', title:'Nördlingen Day Trip', region:'Munich & Nördlingen',
+  locs:[
+    {n:'Munich Hauptbahnhof', lat:48.1402, lng:11.5600, t:'transport', d:'Depart ~8:30am. Regional Express (RE) to Donauwörth (~55 min), then RB to Nördlingen (~30 min).'},
+    {n:'Donauwörth Bahnhof', lat:48.7125, lng:10.7773, t:'transport', d:'Change trains here. RB to Nördlingen (~30 min).'},
+    {n:'Nördlingen City Wall (2.7km Circuit)', lat:48.8521, lng:10.4901, t:'sightseeing', d:"The entire 2.7km medieval wall is walkable from above. Circular layout = the real-world source for Attack on Titan's walls. ~45–60 min circuit."},
+    {n:"Daniel Tower (St. George's Church)", lat:48.8520, lng:10.4897, t:'sightseeing', d:'90m tower. Panoramic view of the circular town and Ries crater rim in surrounding hills. Small entry fee.'},
+    {n:'Rieskrater Museum', lat:48.8540, lng:10.4893, t:'sightseeing', d:'25km-wide meteorite crater, formed 14.5M years ago. NASA sent Apollo astronauts here to train before the moon landings.'},
+    {n:'Café Altreuter', lat:48.8526, lng:10.4910, t:'food', d:'Lunch. Swabian-Bavarian food on the Marktplatz. Try Maultaschen (Swabian stuffed pasta).'},
+    {n:'Hofbräuhaus Munich', lat:48.1378, lng:11.5799, t:'food', d:'Dinner back in Munich. Iconic beer hall — 1-liter Maß steins, live brass band, communal tables.'},
+  ],
+  html:`<div class="day-header"><div class="day-num-label">Day 9 · May 29</div><h2>Nördlingen Day Trip</h2><span class="region-tag">Munich & Nördlingen</span></div>
+<div class="day-content">
+<div class="note-box"><strong>Attack on Titan connection:</strong> Nördlingen is built inside a 25km-wide meteorite crater — giving its medieval walls a near-perfect circular shape. This is the real-world inspiration for the walls in the anime. Standing on the wall and looking inward, the reference is immediately, viscerally obvious.</div>
+<div class="section"><div class="section-label">Transport (both ways)</div>
+<div class="transport-item"><span class="t-icon">→</span><div><strong>Munich Hbf → Donauwörth → Nördlingen</strong><br>RE (~55 min) + RB (~30 min) · Total ~1h 30min · ~€20–25<br>No advance booking needed — buy on DB Navigator app or at machine<br><strong>Depart ~8:30am → Arrive Nördlingen ~10:00am</strong></div></div>
+<div class="transport-item"><span class="t-icon">→</span><div><strong>Return: Depart Nördlingen ~14:00 → Munich ~15:30</strong></div></div>
+</div>
+<div class="section"><div class="time-badge">In Nördlingen (~3–4 hrs)</div>
+<div class="activity-item"><div class="dot dg"></div><div><strong>Walk the City Wall Circuit (2.7km)</strong><span>The entire medieval wall is walkable from above, roofed like a covered gallery. ~45–60 min circuit. The circular layout is unmistakably the Attack on Titan source — the scale and curvature make it visceral rather than abstract.</span></div></div>
+<div class="activity-item"><div class="dot dg"></div><div><strong>Climb the "Daniel" Tower</strong><span>St. George's Church, 90m high. Panoramic view of the perfectly circular town. On clear days you can see the rim of the Ries crater in the surrounding hills — you can see you're standing inside a meteorite impact.</span></div></div>
+<div class="activity-item"><div class="dot dg"></div><div><strong>Town Center Walk</strong><span>The Marktplatz, half-timbered houses, and alleyways look remarkably like the Survey Corps' home district in the anime. Walk slowly.</span></div></div>
+<div class="activity-item"><div class="dot dt"></div><div><strong>Rieskrater Museum (optional, 30–45 min)</strong><span>The meteorite impact story. NASA sent Apollo astronauts to train here before the moon landings because the crater geology resembles lunar impact sites.</span></div></div>
+</div>
+<div class="section"><div class="section-label">Lunch</div>
+<div class="rest-card"><div class="rest-name">Café Altreuter</div><div class="rest-addr">Marktplatz, Nördlingen</div><div class="rest-desc">Traditional Swabian-Bavarian food on the main square. Try Maultaschen (Swabian stuffed pasta, the regional specialty) or a Brotzeit plate.</div></div>
+</div>
+<div class="section"><div class="section-label">Dinner (back in Munich)</div>
+<div class="rest-card"><div class="rest-name">Hofbräuhaus</div><div class="rest-addr">Platzl 9, Munich</div><div class="rest-desc">Touristy, yes — but worth experiencing once: 1-liter Maß steins, live brass band, long communal tables. Order Schweinsbraten or pretzels with Obatzda.</div></div>
+</div></div>`
+},
+{
+  num:10, date:'May 30', title:'Munich — Departure', region:'Munich',
+  locs:[
+    {n:'Viktualienmarkt', lat:48.1350, lng:11.5762, t:'sightseeing', d:"Munich's daily food market since 1807. Authentic Munich breakfast: Weißwurst + sweet mustard + Weißbier (before noon only)."},
+    {n:'Marienplatz & Frauenkirche', lat:48.1374, lng:11.5755, t:'sightseeing', d:"Munich's central square. Gothic twin-towered cathedral. Glockenspiel at 11am and noon."},
+    {n:'Deutsches Museum', lat:48.1298, lng:11.5834, t:'sightseeing', d:"World's largest science and technology museum. Opens 9am. Good for a morning visit before an afternoon flight."},
+    {n:'Munich Hauptbahnhof', lat:48.1402, lng:11.5600, t:'transport', d:'S8/S1 to Munich Airport (~40 min, €13.60). Allow 2+ hours before international departure.'},
+    {n:'Munich Airport (MUC)', lat:48.3537, lng:11.7860, t:'transport', d:'Departure. Allow 2+ hours before international flights.'},
+  ],
+  html:`<div class="day-header"><div class="day-num-label">Day 10 · May 30</div><h2>Munich — Departure</h2><span class="region-tag">Munich</span></div>
+<div class="day-content">
+<div class="section"><div class="time-badge">Morning</div>
+<div class="activity-item"><div class="dot dg"></div><div><strong>Viktualienmarkt Breakfast</strong><span>Munich's daily outdoor food market since 1807. The authentic Munich breakfast: Weißwurst (white veal sausage — peel the skin) with sweet Senf (mustard) and a Weißbier. Eaten strictly before noon — a Bavarian tradition.</span></div></div>
+<div class="activity-item"><div class="dot dg"></div><div><strong>Marienplatz & Frauenkirche</strong><span>Munich's central square and Gothic twin-towered cathedral. Glockenspiel carillon performs at 11am and noon.</span></div></div>
+<div class="activity-item"><div class="dot dg"></div><div><strong>Deutsches Museum (if time allows)</strong><span>Opens 9am. The world's largest science and technology museum — history of invention: aviation, marine navigation, computing. A full morning easily.</span></div></div>
+</div>
+<div class="section"><div class="time-badge">Before Leaving</div>
+<div class="activity-item"><div class="dot dt"></div><div><strong>Last-Minute Souvenirs</strong><span>Mozart Kugeln (widely sold in Munich), German mustard, local beer to take home.</span></div></div>
+</div>
+<div class="section"><div class="section-label">Transport to Airport</div>
+<div class="transport-item"><span class="t-icon">→</span><div><strong>Munich Hbf → Munich Airport (MUC)</strong><br>S-Bahn S8 or S1 · ~40 min · €13.60<br>Allow at least 2 hours before international departure</div></div>
+</div></div>`
+},
+];
+
+// ── Map init ──────────────────────────────────────────────────────────────────
+const map = L.map('map', { zoomControl: true });
+L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+  attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors © <a href="https://carto.com/attributions">CARTO</a>',
+  subdomains: 'abcd',
+  maxZoom: 19,
+}).addTo(map);
+
+let activeMarkers = [];
+
+function showDay(idx) {
+  const day = days[idx];
+  document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', i===idx));
+  document.getElementById('leftPanel').innerHTML = day.html;
+  activeMarkers.forEach(m => map.removeLayer(m));
+  activeMarkers = [];
+  day.locs.forEach(loc => {
+    const m = L.circleMarker([loc.lat, loc.lng], {
+      radius: 9, fillColor: C[loc.t]||'#999',
+      color:'#fff', weight:2, opacity:1, fillOpacity:0.92,
+    });
+    m.bindPopup(`<div style="font-family:-apple-system,sans-serif;min-width:155px;"><div style="font-weight:700;font-size:0.82rem;color:#1a2744;margin-bottom:3px;">${loc.n}</div><div style="font-size:0.74rem;color:#555;line-height:1.4;">${loc.d}</div></div>`);
+    m.addTo(map);
+    activeMarkers.push(m);
+  });
+  if (day.locs.length > 0) {
+    const bounds = L.latLngBounds(day.locs.map(l=>[l.lat,l.lng]));
+    map.fitBounds(bounds, { padding:[50,50], maxZoom: day.num===2||day.num===3||day.num===4?15:day.num===6||day.num===7?13:10 });
+  }
+}
+
+// ── Build tabs ────────────────────────────────────────────────────────────────
+const row = document.getElementById('tabsRow');
+days.forEach((d,i)=>{
+  const b = document.createElement('button');
+  b.className = 'tab-btn';
+  b.innerHTML = `<span class="tab-day">Day ${d.num}</span>${d.date}`;
+  b.onclick = () => showDay(i);
+  row.appendChild(b);
+});
+
+showDay(0);
+</script>
+</body>
+</html>
